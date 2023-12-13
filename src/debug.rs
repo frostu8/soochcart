@@ -6,7 +6,7 @@ use bevy::prelude::*;
 
 use bevy_rapier3d::prelude::*;
 
-use crate::kart::LocalPlayer;
+use crate::kart::{wheel::Wheel, LocalPlayer};
 use crate::random::Random;
 
 /// Debug utilities.
@@ -14,7 +14,7 @@ pub struct DebugPlugin;
 
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, debug_random_impulse);
+        app.add_systems(Update, (debug_random_impulse, debug_draw_wheels));
     }
 }
 
@@ -36,5 +36,28 @@ pub fn debug_random_impulse(
             rng.in_sphere(1.),
             mass_properties.local_center_of_mass,
         );
+    }
+}
+
+pub fn debug_draw_wheels(
+    chassis_query: Query<&GlobalTransform>,
+    wheels_query: Query<(&Parent, &Wheel)>,
+    mut gizmos: Gizmos,
+) {
+    for (parent, wheel) in wheels_query.iter() {
+        let Ok(transform) = chassis_query.get(parent.get()) else {
+            continue;
+        };
+
+        let ray_pos = transform.transform_point(wheel.position);
+        let ray_dir = transform.down() * wheel.max_suspension * (1. - wheel.ratio());
+
+        let color = if wheel.ratio() > 0. {
+            Color::GREEN
+        } else {
+            Color::RED
+        };
+
+        gizmos.line(ray_pos, ray_pos + ray_dir, color);
     }
 }

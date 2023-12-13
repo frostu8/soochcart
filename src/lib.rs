@@ -18,6 +18,7 @@ impl PluginGroup for GamePlugins {
             .add(camera::CameraPlugin)
             .add(map::MapPlugin)
             .add(kart::KartPlugin)
+            .add(kart::wheel::WheelPlugin)
             .add(debug::DebugPlugin)
             .add(random::RandomPlugin)
             .add(GameStatePlugin)

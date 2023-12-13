@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
+
 use soochcart::map::LoadMap;
 use soochcart::{GamePlugins, GameState};
 
@@ -18,6 +20,7 @@ fn main() {
         }))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierDebugRenderPlugin::default())
+        .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(GamePlugins)
         .add_systems(Startup, setup)
         .run();
