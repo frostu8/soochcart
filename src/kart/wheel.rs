@@ -4,18 +4,40 @@ use bevy::prelude::*;
 
 use bevy_rapier3d::prelude::*;
 
-use super::Kart;
+use super::KartSystem;
 
 /// Wheel plugin.
 pub struct WheelPlugin;
 
 impl Plugin for WheelPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Wheel>().add_systems(
-            FixedUpdate,
-            (do_wheel_raycast, reset_chassis_forces, apply_wheel_impulse).chain(),
-        );
+        app
+            .register_type::<Wheel>()
+            .add_systems(
+                FixedUpdate,
+                do_wheel_raycast.in_set(WheelSystem::Raycast),
+            )
+            .add_systems(
+                FixedUpdate,
+                apply_wheel_transform.after(WheelSystem::Raycast),
+            )
+            .add_systems(
+                FixedUpdate,
+                apply_wheel_forces
+                    .in_set(WheelSystem::ApplyForce)
+                    .after(KartSystem::ResetForces)
+                    .after(WheelSystem::Raycast),
+            );
     }
+}
+
+/// A system set for wheels.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, SystemSet)]
+pub enum WheelSystem {
+    /// Does the raycast.
+    Raycast,
+    /// Applies forces.
+    ApplyForce,
 }
 
 /// A wheel bundle.
@@ -50,6 +72,7 @@ pub struct Wheel {
     /// The damping force applied.
     pub damping_factor: f32,
     ratio: f32,
+    normal: Option<Vec3>,
 }
 
 impl Wheel {
@@ -73,21 +96,34 @@ impl Wheel {
     pub fn ratio(&self) -> f32 {
         self.ratio
     }
+
+    /// The inverse ratio of the suspension.
+    ///
+    /// `1` is fully extended.
+    pub fn ratio_minus_one(&self) -> f32 {
+        1. - self.ratio
+    }
+
+    /// The normal of the suspension's contact point.
+    pub fn normal(&self) -> Option<Vec3> {
+        self.normal
+    }
 }
 
 impl Default for Wheel {
     fn default() -> Wheel {
         Wheel {
             position: default(),
-            max_suspension: 0.4,
-            max_force: 225.,
+            max_suspension: 0.35,
+            max_force: 4.,
             damping_factor: 0.2,
             ratio: 0.,
+            normal: None,
         }
     }
 }
 
-fn apply_wheel_impulse(
+fn apply_wheel_forces(
     mut chassis_query: Query<(
         &mut ExternalForce,
         &GlobalTransform,
@@ -95,7 +131,6 @@ fn apply_wheel_impulse(
         &ReadMassProperties,
     )>,
     wheel_query: Query<(&Parent, &Wheel)>,
-    time: Res<Time>,
 ) {
     for (chassis, wheel) in wheel_query.iter() {
         let Ok((mut ef, transform, velocity, mass_properties)) =
@@ -116,20 +151,23 @@ fn apply_wheel_impulse(
         let damping = wheel.damping_factor * pointvel.dot(up);
 
         if !wheel.extended() {
-            let impulse = wheel.max_force
+            let force = wheel.max_force
                 * mass_properties.mass
-                * time.delta_seconds()
                 * up
                 * (wheel.ratio - damping).max(0.);
 
-            *ef += ExternalForce::at_point(impulse, position, center_of_mass);
+            *ef += ExternalForce::at_point(force, position, center_of_mass);
         }
     }
 }
 
-fn reset_chassis_forces(mut chassis_query: Query<&mut ExternalForce, With<Kart>>) {
-    for mut ef in chassis_query.iter_mut() {
-        *ef = ExternalForce::default();
+fn apply_wheel_transform(
+    mut wheel_query: Query<(&mut Transform, &Wheel)>,
+) {
+    for (mut transform, wheel) in wheel_query.iter_mut() {
+        let position = wheel.position + -Vec3::Y * wheel.max_suspension * wheel.ratio_minus_one();
+
+        *transform = Transform::from_translation(position);
     }
 }
 
@@ -148,12 +186,14 @@ fn do_wheel_raycast(
         let ray_dir = transform.down();
         let filter = QueryFilter::new().exclude_collider(chassis.get());
 
-        if let Some((_entity, toi)) =
-            rapier_context.cast_ray(ray_pos, ray_dir, wheel.max_suspension, true, filter)
+        if let Some((_entity, ray)) =
+            rapier_context.cast_ray_and_get_normal(ray_pos, ray_dir, wheel.max_suspension, true, filter)
         {
-            wheel.ratio = 1. - toi / wheel.max_suspension;
+            wheel.ratio = 1. - ray.toi / wheel.max_suspension;
+            wheel.normal = Some(ray.normal);
         } else {
             wheel.ratio = 0.;
+            wheel.normal = None;
         }
     }
 }

@@ -27,12 +27,15 @@ fn main() {
 }
 
 fn setup(
-    mut commands: Commands,
+    //mut commands: Commands,
     mut load_map: ResMut<LoadMap>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut fixed_time: ResMut<Time<Fixed>>,
     asset_server: Res<AssetServer>,
 ) {
     load_map.map = asset_server.load("maps/testing/scene.glb#Scene0");
+
+    fixed_time.set_timestep_hz(120.);
 
     next_state.set(GameState::LoadingMap);
 }

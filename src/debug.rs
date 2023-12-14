@@ -3,6 +3,7 @@
 //! The systems in this module are also externally available.
 
 use bevy::prelude::*;
+use bevy::transform::TransformSystem;
 
 use bevy_rapier3d::prelude::*;
 
@@ -14,7 +15,12 @@ pub struct DebugPlugin;
 
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (debug_random_impulse, debug_draw_wheels));
+        app
+            .add_systems(
+                PostUpdate,
+                (debug_random_impulse, debug_draw_wheels)
+                    .after(TransformSystem::TransformPropagate),
+            );
     }
 }
 
@@ -41,10 +47,10 @@ pub fn debug_random_impulse(
 
 pub fn debug_draw_wheels(
     chassis_query: Query<&GlobalTransform>,
-    wheels_query: Query<(&Parent, &Wheel)>,
+    wheels_query: Query<(&Parent, &Wheel, &GlobalTransform)>,
     mut gizmos: Gizmos,
 ) {
-    for (parent, wheel) in wheels_query.iter() {
+    for (parent, wheel, wheel_transform) in wheels_query.iter() {
         let Ok(transform) = chassis_query.get(parent.get()) else {
             continue;
         };
@@ -59,5 +65,12 @@ pub fn debug_draw_wheels(
         };
 
         gizmos.line(ray_pos, ray_pos + ray_dir, color);
+
+        gizmos.sphere(
+            wheel_transform.translation(),
+            Quat::IDENTITY,
+            0.02,
+            color,
+        );
     }
 }
