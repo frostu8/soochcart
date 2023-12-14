@@ -108,8 +108,8 @@ pub struct KartOptions {
 impl Default for KartOptions {
     fn default() -> KartOptions {
         KartOptions {
-            max_acceleration: 20.,
-            max_velocity: 10.,
+            max_acceleration: 30.,
+            max_velocity: 12.,
         }
     }
 }
