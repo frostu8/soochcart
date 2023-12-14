@@ -7,8 +7,7 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Update, collect_local_inputs.in_set(InputSystem::Collect));
+        app.add_systems(Update, collect_local_inputs.in_set(InputSystem::Collect));
     }
 }
 
@@ -64,4 +63,3 @@ fn collect_local_inputs(
         }
     }
 }
-

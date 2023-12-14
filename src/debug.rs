@@ -15,12 +15,10 @@ pub struct DebugPlugin;
 
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(
-                PostUpdate,
-                (debug_random_impulse, debug_draw_wheels)
-                    .after(TransformSystem::TransformPropagate),
-            );
+        app.add_systems(
+            PostUpdate,
+            (debug_random_impulse, debug_draw_wheels).after(TransformSystem::TransformPropagate),
+        );
     }
 }
 
@@ -66,11 +64,6 @@ pub fn debug_draw_wheels(
 
         gizmos.line(ray_pos, ray_pos + ray_dir, color);
 
-        gizmos.sphere(
-            wheel_transform.translation(),
-            Quat::IDENTITY,
-            0.02,
-            color,
-        );
+        gizmos.sphere(wheel_transform.translation(), Quat::IDENTITY, 0.02, color);
     }
 }

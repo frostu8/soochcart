@@ -11,12 +11,8 @@ pub struct WheelPlugin;
 
 impl Plugin for WheelPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .register_type::<Wheel>()
-            .add_systems(
-                FixedUpdate,
-                do_wheel_raycast.in_set(WheelSystem::Raycast),
-            )
+        app.register_type::<Wheel>()
+            .add_systems(FixedUpdate, do_wheel_raycast.in_set(WheelSystem::Raycast))
             .add_systems(
                 FixedUpdate,
                 apply_wheel_transform.after(WheelSystem::Raycast),
@@ -151,19 +147,15 @@ fn apply_wheel_forces(
         let damping = wheel.damping_factor * pointvel.dot(up);
 
         if !wheel.extended() {
-            let force = wheel.max_force
-                * mass_properties.mass
-                * up
-                * (wheel.ratio - damping).max(0.);
+            let force =
+                wheel.max_force * mass_properties.mass * up * (wheel.ratio - damping).max(0.);
 
             *ef += ExternalForce::at_point(force, position, center_of_mass);
         }
     }
 }
 
-fn apply_wheel_transform(
-    mut wheel_query: Query<(&mut Transform, &Wheel)>,
-) {
+fn apply_wheel_transform(mut wheel_query: Query<(&mut Transform, &Wheel)>) {
     for (mut transform, wheel) in wheel_query.iter_mut() {
         let position = wheel.position + -Vec3::Y * wheel.max_suspension * wheel.ratio_minus_one();
 
@@ -186,9 +178,13 @@ fn do_wheel_raycast(
         let ray_dir = transform.down();
         let filter = QueryFilter::new().exclude_collider(chassis.get());
 
-        if let Some((_entity, ray)) =
-            rapier_context.cast_ray_and_get_normal(ray_pos, ray_dir, wheel.max_suspension, true, filter)
-        {
+        if let Some((_entity, ray)) = rapier_context.cast_ray_and_get_normal(
+            ray_pos,
+            ray_dir,
+            wheel.max_suspension,
+            true,
+            filter,
+        ) {
             wheel.ratio = 1. - ray.toi / wheel.max_suspension;
             wheel.normal = Some(ray.normal);
         } else {

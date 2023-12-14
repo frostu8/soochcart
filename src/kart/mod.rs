@@ -10,8 +10,8 @@ use bevy_rapier3d::prelude::*;
 use crate::camera::FollowKartBundle;
 use crate::GameState;
 
+use input::{InputSystem, PlayerCommands};
 use wheel::{Wheel, WheelBundle, WheelSystem};
-use input::{PlayerCommands, InputSystem};
 
 /// Kart plugin.
 pub struct KartPlugin;
@@ -218,8 +218,7 @@ fn average_chassis_normals(
             .filter_map(|w| w.normal())
             .reduce(|acc, x| acc + x);
 
-        chassis.ground_normal = total_normal
-            .map(|n| n / chassis.wheels_contacting_ground as f32);
+        chassis.ground_normal = total_normal.map(|n| n / chassis.wheels_contacting_ground as f32);
     }
 }
 
@@ -235,7 +234,9 @@ fn apply_chassis_acceleration(
     )>,
     //time: Res<Time>,
 ) {
-    for (mut ef, transform, velocity, mass_properties, chassis, player_commands, options) in chassis_query.iter_mut() {
+    for (mut ef, transform, velocity, mass_properties, chassis, player_commands, options) in
+        chassis_query.iter_mut()
+    {
         // get normal, only apply acceleration if it is grounded
         let Some(ground_normal) = chassis.ground_normal() else {
             continue;
@@ -267,4 +268,3 @@ fn apply_chassis_acceleration(
 pub fn project_on_ground_plane(normal: Vec3, vector: Vec3) -> Vec3 {
     vector - normal * vector.dot(normal)
 }
-
